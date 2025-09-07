@@ -1,0 +1,47 @@
+# --- Terraform related files ---
+# Local .terraform directories
+**/.terraform/*
+
+# Terraform state files
+**/*.tfstate
+**/*.tfstate.*
+
+# Crash log files
+**/crash.log
+**/crash.*.log
+
+# Exclude override files (local only)
+**/override.tf
+**/override.tf.json
+**/*_override.tf
+**/*_override.tf.json
+
+# Sensitive variable files (do not commit secrets)
+**/*.tfvars
+**/*.tfvars.json
+
+# Terraform plan files
+**/*.plan
+
+# CLI config
+**/.terraformrc
+**/terraform.rc
+
+# Lock file (optional, see note below)
+**/.terraform.lock.hcl
+
+
+# --- General project hygiene ---
+# OS / editor files
+*.DS_Store
+*.swp
+*.swo
+*~
+
+# VSCode / IntelliJ / PyCharm
+.vscode/
+.idea/
+
+# Python bytecode (if using python scripts in project)
+__pycache__/
+*.pyc
