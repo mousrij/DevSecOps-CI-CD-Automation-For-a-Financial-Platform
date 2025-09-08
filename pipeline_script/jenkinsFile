@@ -24,6 +24,16 @@ So our pipeline is with our pipeline, that we going to list right Here
 
 pipeline {
     agent any
+    
+    parameters {
+        string(name: 'ECR_REPO_NAME', defaultValue: 'budget-project', description: 'Enter repository name')
+        string(name: 'AWS_ACCOUNT_ID', defaultValue: 'budget-project', description: 'Enter repository name')
+    }
+
+    tools {
+        jdk 'JDK17'
+        nodejs 'NodeJS'
+    }
 
     environment {
         SCANNER_HOME = tool 'SonarQube Scanner'
@@ -32,22 +42,41 @@ pipeline {
     stages {
         stage('1. SonarQube scan') {
             steps {
-                sh """
-                $SCANNER_HOME/bin/sonar-scanner \
-                -Dsonar.projectName=budget-project \
-                -Dsonar.projectKey=budget-project
-                """
+                withSonarQubeEnv ('sonar-server') {
+                    sh """
+                    $SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectName=budget-project \
+                    -Dsonar.projectKey=budget-project
+                    """
+                }
             }
         }
         // Quality Gate
-        stage('2. Quality Gate'){
-            steps{
-                waitForQualityGate abortPipeline: false, 
-                credentialsId: 'sonar-token'
+        stage('2. Quality Gate') {
+            steps {
+                waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
             }
         }
 
+        // Build Container 
+        stage('3. Build Container') {
+            steps {
+                sh """
+                    docker build -t ${params.ECR_REPO_NAME} .
+                """
+            }
+        }
 
+        // Scan image
+
+        stage('4. Trivy Scan Container') {
+            steps { 
+                sh """
+                    trivy image -f json -o results.json ${params.ECR_REPO_NAME}
+                    cat results.json
+                """
+            }
+        }
 
     }
     
