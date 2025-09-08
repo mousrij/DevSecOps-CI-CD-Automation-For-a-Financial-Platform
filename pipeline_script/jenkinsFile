@@ -1,0 +1,57 @@
+/*
+So our pipeline is with our pipeline, that we going to list right Here 
+
+    Stages : (6)
+    
+            - Checkout scm (built in with SCM config)
+    - then make a sonarqube scan 
+    - Inaugurate a quality gate threshold of the scan analysis
+    - Build the image
+    - scan the image with trivy
+    - Push the image to ECR repository (verify if the ECR exist)
+    - Clean Up the images exist in the jenkins server
+
+    Define : 
+
+        - Tools         -- jdk
+        - Parameters    -- ECR repo name && aws account Id 
+        - Environment
+
+
+*/
+
+
+
+pipeline {
+    agent any
+
+    environment {
+        SCANNER_HOME = tool 'SonarQube Scanner'
+    }
+
+    stages {
+        stage('1. SonarQube scan') {
+            steps {
+                sh """
+                $SCANNER_HOME/bin/sonar-scanner \
+                -Dsonar.projectName=budget-project \
+                -Dsonar.projectKey=budget-project
+                """
+            }
+        }
+        // Quality Gate
+        stage('2. Quality Gate'){
+            steps{
+                waitForQualityGate abortPipeline: false, 
+                credentialsId: 'sonar-token'
+            }
+        }
+
+
+
+    }
+    
+
+
+
+}
