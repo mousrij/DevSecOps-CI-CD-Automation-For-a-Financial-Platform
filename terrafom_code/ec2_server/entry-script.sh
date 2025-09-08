@@ -27,7 +27,50 @@ sudo chmod 777 /var/run/docker.sock
 docker --version
 
 # Install Sonarqube (as image)
-docker run -d --name sonar -p 9000:9000 sonarqube:lts-community
+# Create a docker-compose.yml file with the required configuration
+cat <<EOF > docker-compose.yml
+version: "3"
+
+services:
+  sonarqube:
+    image: sonarqube:lts-community
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes:
+      - postgresql:/var/lib/postgresql
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  postgresql:
+EOF
+
+# Before Linux controls how many "virtual memory map areas" a process can have with the kernel parameter:
+# vm.max_map_count = Your system currently has: 65530
+# Elasticsearch (inside SonarQube) requires at least: 262144
+# so run this command 
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+
+# Run docker compose up in detached mode
+docker compose up -d
 
 # Install Trivy
 sudo apt-get install -y wget apt-transport-https gnupg
