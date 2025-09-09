@@ -150,7 +150,7 @@ pipeline {
                 }
             }
         }
-
+        
         // Clean up local Docker images
         stage('7. Cleanup') {
             steps {
