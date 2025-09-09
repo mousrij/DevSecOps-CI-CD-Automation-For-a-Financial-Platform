@@ -27,7 +27,7 @@ pipeline {
     
     parameters {
         string(name: 'ECR_REPO_NAME', defaultValue: 'budget-project', description: 'Enter repository name')
-        string(name: 'AWS_ACCOUNT_ID', defaultValue: 'budget-project', description: 'Enter repository name')
+        string(name: 'AWS_ACCOUNT_ID', defaultValue: '151826481606', description: 'Enter repository name')
     }
 
     tools {
@@ -51,6 +51,7 @@ pipeline {
                 }
             }
         }
+
         // Quality Gate
         stage('2. Quality Gate') {
             steps {
@@ -68,7 +69,6 @@ pipeline {
         }
 
         // Scan image
-
         stage('4. Trivy Scan Container') {
             steps { 
                 sh """
@@ -78,9 +78,94 @@ pipeline {
             }
         }
 
+        // Check and Create ECR repository if it doesn't exist
+        stage('5. ECR Repository Check/Create') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'aws_access_key_id', variable: 'AWS_ACCESS_KEY'),
+                    string(credentialsId: 'aws_secret_access_key', variable: 'AWS_SECRET_KEY')
+                ]) {
+                    script {
+                        // Export credentials for AWS CLI
+                        withEnv([
+                            "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY",
+                            "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_KEY",
+                            "AWS_DEFAULT_REGION=eu-west-3"
+                        ]) {
+                            // Check if repo exists
+                            def repoExists = sh(
+                                script: """
+                                    aws ecr describe-repositories \
+                                        --repository-names ${params.ECR_REPO_NAME} \
+                                        >/dev/null 2>&1
+                                """,
+                                returnStatus: true
+                            )
+
+                            if (repoExists == 0) {
+                                echo "✅ ECR repository '${params.ECR_REPO_NAME}' already exists"
+                            } else {
+                                echo "❌ ECR repository '${params.ECR_REPO_NAME}' not found. Creating..."
+                                sh """
+                                    aws ecr create-repository \
+                                        --repository-name ${params.ECR_REPO_NAME} \
+                                        --region eu-west-3
+                                """
+                                echo "✅ ECR repository '${params.ECR_REPO_NAME}' created successfully"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Login to ECR and Push Image
+        stage('6. Tag and Push to ECR') {
+            steps {
+                withCredentials(
+                    [string(credentialsId: 'aws_access_key_id', variable: 'AWS_ACCESS_KEY'), 
+                     string(credentialsId: 'aws_secret_access_key', variable: 'AWS_SECRET_KEY')]
+                ) {
+                    script {
+                        def ecrRegistry = "${params.AWS_ACCOUNT_ID}.dkr.ecr.eu-west-3.amazonaws.com"
+                        def imageTag_latest = "${ecrRegistry}/${params.ECR_REPO_NAME}:latest"
+                        def imageTag_build_number = "${ecrRegistry}/${params.ECR_REPO_NAME}:${BUILD_NUMBER}"
+                        
+                        sh """
+                            # Login to ECR
+                            aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin ${ecrRegistry}
+                            
+                            # Tag the image for ECR
+
+                            docker tag ${params.ECR_REPO_NAME} ${imageTag_build_number}
+                            docker tag ${params.ECR_REPO_NAME} ${imageTag_latest}
+                            
+                            # Push the image to ECR
+                            docker push ${imageTag_build_number}
+                            docker push ${imageTag_latest}
+                            
+                            echo "✅ Image pushed successfully to ECR: ${imageTag_latest}"
+                        """
+                    }
+                }
+            }
+        }
+
+        // Clean up local Docker images
+        stage('7. Cleanup') {
+            steps {
+                sh """
+                    # Remove local Docker images to free up space
+                    docker rmi ${params.ECR_REPO_NAME} || true
+                    docker rmi ${params.AWS_ACCOUNT_ID}.dkr.ecr.eu-west-3.amazonaws.com/${params.ECR_REPO_NAME}:latest || true
+                    docker rmi ${params.AWS_ACCOUNT_ID}.dkr.ecr.eu-west-3.amazonaws.com/${params.ECR_REPO_NAME}:${BUILD_NUMBER} || true
+                    
+                    # Clean up dangling images
+                    docker images
+                    
+                    echo "✅ Local Docker images cleaned up"
+                """
+            }
+        }
     }
-    
-
-
-
 }
