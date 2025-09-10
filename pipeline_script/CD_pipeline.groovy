@@ -25,23 +25,30 @@ pipeline {
             steps {
                 script {
                     sh """
-                    helm repo add stable https://charts.helm.sh/stable || true
                     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
-                    # Check if namespace 'prometheus' exists
-                    if kubectl get namespace prometheus > /dev/null 2>&1; then
+
+                    RELEASE_NAME=kube-prom-stack
+                    NAMESPACE=prometheus
+
+                    if kubectl get namespace $NAMESPACE > /dev/null 2>&1; then
                         # If namespace exists, upgrade the Helm release
-                        helm upgrade stable prometheus-community/kube-prometheus-stack -n prometheus
+                        helm upgrade --install $RELEASE_NAME prometheus-community/kube-prometheus-stack -n $NAMESPACE
                     else
                         # If namespace does not exist, create it and install Helm release
-                        kubectl create namespace prometheus
-                        helm install stable prometheus-community/kube-prometheus-stack -n prometheus
+                        kubectl create namespace $NAMESPACE
+                        helm install $RELEASE_NAME prometheus-community/kube-prometheus-stack -n $NAMESPACE
                     fi
-                    kubectl patch svc stable-kube-prometheus-sta-prometheus -n prometheus -p '{"spec": {"type": "LoadBalancer"}}'
-                    kubectl patch svc stable-grafana -n prometheus -p '{"spec": {"type": "LoadBalancer"}}'
+
+                    # Patch Prometheus service to LoadBalancer
+                    kubectl patch svc $RELEASE_NAME-kube-prometheus-sta-prometheus -n $NAMESPACE -p '{"spec": {"type": "LoadBalancer"}}'
+
+                    # Patch Grafana service to LoadBalancer
+                    kubectl patch svc $RELEASE_NAME-grafana -n $NAMESPACE -p '{"spec": {"type": "LoadBalancer"}}'
                     """
                 }
             }
         }
+
 
         stage("Configure ArgoCD") {
             steps {
