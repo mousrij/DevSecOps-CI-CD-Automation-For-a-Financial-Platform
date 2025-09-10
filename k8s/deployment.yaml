@@ -1,0 +1,23 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: budget-app
+  labels:
+    app: budget-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: budget-app
+  template:
+    metadata:
+      labels:
+        app: budget-app
+    spec:
+      containers:
+      - name: budget-app-container
+        image: 151826481606.dkr.ecr.eu-west-3.amazonaws.com/budget-project:latest
+        ports:
+        - containerPort: 3000
+...
