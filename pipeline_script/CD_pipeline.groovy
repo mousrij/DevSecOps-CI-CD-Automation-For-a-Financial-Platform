@@ -39,7 +39,7 @@ pipeline {
                     fi
 
                     # Patch Prometheus service to LoadBalancer
-                    kubectl patch svc ${env.PROM_RELEASE_NAME}-kube-prometheus-sta-prometheus -n ${env.PROM_NAMESPACE} -p '{"spec": {"type": "LoadBalancer"}}'
+                    kubectl patch svc ${env.PROM_RELEASE_NAME}-kube-prome-prometheus -n ${env.PROM_NAMESPACE} -p '{"spec": {"type": "LoadBalancer"}}'
 
                     # Patch Grafana service to LoadBalancer
                     kubectl patch svc ${env.PROM_RELEASE_NAME}-grafana -n ${env.PROM_NAMESPACE} -p '{"spec": {"type": "LoadBalancer"}}'
