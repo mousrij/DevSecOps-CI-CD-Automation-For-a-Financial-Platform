@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         KUBECTL = '/usr/local/bin/kubectl'
+        PROM_NAMESPACE = 'prometheus'
+        PROM_RELEASE_NAME = 'kube-prom-stack'
     }
 
     parameters {
@@ -27,23 +29,20 @@ pipeline {
                     sh """
                     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
 
-                    RELEASE_NAME=kube-prom-stack
-                    NAMESPACE=prometheus
-
-                    if kubectl get namespace $NAMESPACE > /dev/null 2>&1; then
+                    if kubectl get namespace ${env.PROM_NAMESPACE} > /dev/null 2>&1; then
                         # If namespace exists, upgrade the Helm release
-                        helm upgrade --install $RELEASE_NAME prometheus-community/kube-prometheus-stack -n $NAMESPACE
+                        helm upgrade --install ${env.PROM_RELEASE_NAME} prometheus-community/kube-prometheus-stack -n ${env.PROM_NAMESPACE}
                     else
                         # If namespace does not exist, create it and install Helm release
-                        kubectl create namespace $NAMESPACE
-                        helm install $RELEASE_NAME prometheus-community/kube-prometheus-stack -n $NAMESPACE
+                        kubectl create namespace ${env.PROM_NAMESPACE}
+                        helm install ${env.PROM_RELEASE_NAME} prometheus-community/kube-prometheus-stack -n ${env.PROM_NAMESPACE}
                     fi
 
                     # Patch Prometheus service to LoadBalancer
-                    kubectl patch svc $RELEASE_NAME-kube-prometheus-sta-prometheus -n $NAMESPACE -p '{"spec": {"type": "LoadBalancer"}}'
+                    kubectl patch svc ${env.PROM_RELEASE_NAME}-kube-prometheus-sta-prometheus -n ${env.PROM_NAMESPACE} -p '{"spec": {"type": "LoadBalancer"}}'
 
                     # Patch Grafana service to LoadBalancer
-                    kubectl patch svc $RELEASE_NAME-grafana -n $NAMESPACE -p '{"spec": {"type": "LoadBalancer"}}'
+                    kubectl patch svc ${env.PROM_RELEASE_NAME}-grafana -n ${env.PROM_NAMESPACE} -p '{"spec": {"type": "LoadBalancer"}}'
                     """
                 }
             }
