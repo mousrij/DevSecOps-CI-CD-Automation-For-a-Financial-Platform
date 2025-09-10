@@ -15,7 +15,7 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: 'aws_access_key_id', variable: 'AWS_ACCESS_KEY'),
                                      string(credentialsId: 'aws_secret_access_key', variable: 'AWS_SECRET_KEY')]) {
-                        sh "aws eks --region us-east-1 update-kubeconfig --name ${params.CLUSTER_NAME}"
+                        sh "aws eks --region eu-west-3 update-kubeconfig --name ${params.CLUSTER_NAME}"
                     }
                 }
             }
