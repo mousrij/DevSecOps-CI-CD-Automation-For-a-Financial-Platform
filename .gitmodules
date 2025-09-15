@@ -1,0 +1,3 @@
+[submodule "DevSecOps--Notes"]
+	path = DevSecOps--Notes
+	url = https://github.com/mousrij/DevSecOps--Notes.git
