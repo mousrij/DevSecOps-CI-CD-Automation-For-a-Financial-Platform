@@ -167,5 +167,27 @@ pipeline {
                 """
             }
         }
+
+                //Update k8s deployment manifest file
+        stage('8. Image Updater'){
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'jenkins-scm', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]){
+                    sh """
+                        git config --global user.email 'jenkins@ec2-user.com'
+                        git config --global user.name 'jenkins-server'
+                        git clone -b pipeline_script https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/mousrij/DevSecOps-CI-CD-Automation-For-a-Financial-Platform.git
+                        cd DevSecOps-CI-CD-Automation-For-a-Financial-Platform/k8s
+
+                        # Update the deployment image tag to the current build number, regardless of previous tag
+                        sed -i "s#\\(image: [^:]*:\\)\\w*#\\1${BUILD_NUMBER}#" deployments.yaml
+
+                        git add deployments.yaml
+                        git commit -m "Update deployment image tag to build ${BUILD_NUMBER} [ci skip]"
+                        git push origin pipeline_script
+                    """
+                }
+            }
+
+        }
     }
 }
