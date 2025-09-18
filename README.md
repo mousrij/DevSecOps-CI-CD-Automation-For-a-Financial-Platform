@@ -139,6 +139,9 @@ Suggested stages (customize as needed):
 - 🧑‍⚖️ Manual Approval (for prod)
 - 🚀 Deploy to Prod EKS
 
+<img width="2188" height="1064" alt="image" src="https://github.com/user-attachments/assets/038278c3-bcc5-41d2-8891-c71680b6d2c3" />
+
+
 ## 🔒 Security Considerations
 - Prefer minimal base images and run as non-root in `deployment.yaml`.
 - Use image scanning in CI and fail on critical findings.
